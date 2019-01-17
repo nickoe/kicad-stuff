@@ -116,6 +116,8 @@ pipeline {
 
                 unstash 'doxygen'
                 unstash 'doxygen-python'
+                sh 'pwd'
+                sh 'ls'
             }
         }  
     }
