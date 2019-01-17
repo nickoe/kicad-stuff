@@ -88,7 +88,7 @@ pipeline {
                             sh 'pwd && ls'
                             sh 'mkdir build && cd build && cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_GITHUB_PLUGIN=ON -DKICAD_SCRIPTING=OFF -DKICAD_SCRIPTING_MODULES=OFF -DKICAD_SCRIPTING_ACTION_MENU=OFF -DKICAD_SCRIPTING_WXPYTHON=OFF -DKICAD_USE_OCE=OFF -DKICAD_SPICE=OFF'
                             sh 'make doxygen-docs -j3'
-                            sh 'make doxygen-python -j3'
+                            //sh 'make doxygen-python -j3' // we probably need to enable scripting as well
                         }
                     }
                     post {
