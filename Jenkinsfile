@@ -6,7 +6,7 @@ pipeline {
                 label "worker"
             }
             steps {
-                cleanWs()
+                //cleanWs()
                 dir('kicad-src') {
                     git 'https://git.launchpad.net/kicad'
                 }
@@ -78,6 +78,23 @@ pipeline {
                         }
                     }
                 }
+                stage('Archlinux build') {
+                    agent {
+                        label "docker_generic-archlinux"
+                    }
+                    steps {
+                        git https://aur.archlinux.org/kicad-git.git
+                        echo 'Hello World from appimage build step'
+                        sh 'makepkg'
+                        stash includes: '*pkg.tar.xz', name: 'kicad-aur-git', useDefaultExcludes: false 
+                    }
+                    post {
+                        always {
+                            //junit "**/TEST-*.xml"
+                            sh 'echo fisk2'
+                        }
+                    }
+                }
                 stage('Doxygen build') {
                     agent {
                         label "generic-alpine"
@@ -87,14 +104,15 @@ pipeline {
                         dir('kicad-src') {
                             sh 'pwd && ls'
                             sh 'mkdir build && cd build && cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_GITHUB_PLUGIN=ON -DKICAD_SCRIPTING=OFF -DKICAD_SCRIPTING_MODULES=OFF -DKICAD_SCRIPTING_ACTION_MENU=OFF -DKICAD_SCRIPTING_WXPYTHON=OFF -DKICAD_USE_OCE=OFF -DKICAD_SPICE=OFF'
-                            sh 'make doxygen-docs -j3'
-                            //sh 'make doxygen-python -j3' // we probably need to enable scripting as well
+                            sh 'pwd'
+                            sh 'cd build && make doxygen-docs -j3'
+                            //sh 'cd build && make doxygen-python -j3' // we probably need to enable scripting as well
                         }
                     }
                     post {
                         success {
-                            stash includes: 'Documentation/doxygen/html/**', name: 'doxygen', useDefaultExcludes: false
-                            stash includes: 'build/pcbnew/doxygen-python/**', name: 'doxygen-python', useDefaultExcludes: false
+                            stash includes: 'kicad-src/Documentation/doxygen/html/**', name: 'doxygen', useDefaultExcludes: false
+                            //stash includes: 'kicad-src/build/pcbnew/doxygen-python/**', name: 'doxygen-python', useDefaultExcludes: false
                         }
                     }
                 }
@@ -115,9 +133,14 @@ pipeline {
                 sh 's3cmd ls s3://kicad-downloads/appimage/'
 
                 unstash 'doxygen'
-                unstash 'doxygen-python'
+                //unstash 'doxygen-python'
                 sh 'pwd'
                 sh 'ls'
+                sh 's3cmd put --guess-mime-type --recursive kicad-src/Documentation/doxygen/html/* s3://kicad-downloads/doxygen/'
+                sh 's3cmd put --mime-type=text/css kicad-src/Documentation/doxygen/html/tabs.css s3://kicad-downloads/doxygen/'
+
+                unstash 'kicad-aur-git'
+                sh 's3cmd put *pkg.tar.xz s3://kicad-downloads/archlinux/testing/'
             }
         }  
     }
